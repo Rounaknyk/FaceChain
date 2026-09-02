@@ -1,0 +1,8 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+artifacts/*.json
+!artifacts/.gitkeep
+demo/*
+!demo/README.md
