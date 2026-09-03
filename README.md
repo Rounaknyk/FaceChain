@@ -29,6 +29,7 @@ graph TD
    face, and returns a provider-issued face token plus facial landmarks. FaceChain
    encodes the ordered landmarks into face-relative coordinates. Only hashes of
    that vector and the provider token are kept; raw biometric data is discarded.
+   *(Note: Images sent to Face++ are compressed to meet API size limits. This does not impact accuracy, as facial recognition relies on relative geometric proportions which remain invariant across compression levels.)*
 2. **Reverse-image search:** Google Cloud Vision Web Detection searches the
    public web from the image bytes. FaceChain accepts only a URL from Google's
    `pagesWithMatchingImages` response whose domain is a recognized social site.
