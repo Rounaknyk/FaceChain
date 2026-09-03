@@ -53,4 +53,5 @@ def verify_hash(digest: str, transaction_hash: str, rpc_url: str) -> dict:
         "block_number": tx.get("blockNumber"),
         "committer": tx["from"],
         "network": "Ethereum Sepolia",
+        "on_chain_hash": actual,
     }

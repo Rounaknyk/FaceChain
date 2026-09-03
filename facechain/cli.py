@@ -8,7 +8,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from .chain import commit_hash, verify_hash
+from .chain import commit_hash, verify_hash, PREFIX
 from .core import build_evidence, choose_social_match, evidence_hash, write_artifact
 from .providers import ProviderError, detect_face, reverse_image_search
 from rich.console import Console
@@ -122,6 +122,8 @@ def run(image_path: Path | None, artifacts: Path, dry_run: bool = False) -> None
         cv2.imwrite(str(viz_path), viz_img)
     console.print("[green]✓[/green] Evidence JSON and landmark visualization built")
     console.print(f"    [dim]Evidence SHA-256: {digest}[/dim]")
+    on_chain_hex = "0x" + (PREFIX + bytes.fromhex(digest)).hex()
+    console.print(f"    [dim]Blockchain Input Data: {on_chain_hex}[/dim]")
     console.print(f"    [dim]Landmark image: {viz_path}[/dim]")
 
     if dry_run:
