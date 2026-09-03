@@ -9,6 +9,22 @@ does not return an indexed social post for that image.
 
 ## What happens end to end
 
+```mermaid
+graph TD
+    A[Start Pipeline] --> B{Input Method?}
+    B -->|Interactive prompt| C[1: Capture from Webcam]
+    B -->|Interactive prompt| D[2: Browse File via dialog]
+    B -->|CLI Argument| E[Read file directly]
+    C --> F[Image Resizing & Compression]
+    D --> F
+    E --> F
+    F -->|max 1024px, 85% JPEG| G[Face++ Detection]
+    G --> H[Extract Face Landmarks & Token]
+    H --> I[Google Cloud Vision Web Search]
+    I --> J[Filter for recognized Social Media URL]
+    J --> K[Build Privacy-preserving Evidence JSON]
+    K --> L[Anchor to Ethereum Sepolia Blockchain]
+```
 1. **Face ID:** Face++ Detect uploads the input, requires exactly one detected
    face, and returns a provider-issued face token plus facial landmarks. FaceChain
    encodes the ordered landmarks into face-relative coordinates. Only hashes of
@@ -43,8 +59,14 @@ from Sepolia faucets.
 Use a photo that is already present in a public, indexed social post, then run:
 
 ```bash
-python -m facechain.cli run --dry-run ./demo/person.jpeg
+# Run interactively (will prompt to use Webcam or browse for a file)
+python -m facechain.cli run --dry-run
+python -m facechain.cli run
+
+# Or provide a file path directly
 python -m facechain.cli run ./demo/person.jpeg
+
+# Verify the evidence
 python -m facechain.cli verify ./artifacts/evidence-XXXXXXXXXXXX.json
 ```
 
