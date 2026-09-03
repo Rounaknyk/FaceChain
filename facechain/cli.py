@@ -40,8 +40,12 @@ def run(image_path: Path | None, artifacts: Path, dry_run: bool = False) -> None
             image_path = Path(file_path)
 
     import cv2
+    import numpy as np
+    
     if image_path:
-        img = cv2.imread(str(image_path))
+        original_image = image_path.read_bytes()
+        img_arr = np.frombuffer(original_image, np.uint8)
+        img = cv2.imdecode(img_arr, cv2.IMREAD_COLOR)
         if img is None:
             raise SystemExit(f"Error: Failed to load image from {image_path}")
     else:
@@ -55,31 +59,55 @@ def run(image_path: Path | None, artifacts: Path, dry_run: bool = False) -> None
         if not ret:
             raise SystemExit("Error: Failed to capture frame from webcam.")
             
-    # Resize image to prevent 413 Request Entity Too Large errors from Face++
+        # Encode webcam frame losslessly to act as the "original" high-fidelity image
+        is_success, buffer = cv2.imencode(".png", img)
+        if not is_success:
+            raise SystemExit("Error: Failed to encode webcam frame.")
+        original_image = buffer.tobytes()
+            
+    # Resize and compress image specifically for Face++ (prevent 413 Request Entity Too Large errors)
     max_dim = 1024
     h, w = img.shape[:2]
     if max(h, w) > max_dim:
         scale = max_dim / max(h, w)
-        img = cv2.resize(img, (int(w * scale), int(h * scale)))
+        facepp_img = cv2.resize(img, (int(w * scale), int(h * scale)))
+    else:
+        facepp_img = img
         
-    is_success, buffer = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    is_success, buffer = cv2.imencode(".jpg", facepp_img, [cv2.IMWRITE_JPEG_QUALITY, 85])
     if not is_success:
-        raise SystemExit("Error: Failed to encode image to JPEG.")
-    image = buffer.tobytes()
+        raise SystemExit("Error: Failed to encode image to JPEG for Face++.")
+    facepp_image = buffer.tobytes()
+    
     print("Image inputted...")
     print("Encoding face...")
-    face = detect_face(image, required_env("FACEPP_API_KEY"), required_env("FACEPP_API_SECRET"))
+    face = detect_face(facepp_image, required_env("FACEPP_API_KEY"), required_env("FACEPP_API_SECRET"))
     print("Face encoded.")
+    
+    # Draw face bounding box and landmarks
+    viz_img = facepp_img.copy()
+    rect = face.get("face_rectangle", {})
+    if rect:
+        x, y = rect.get("left", 0), rect.get("top", 0)
+        w, h = rect.get("width", 0), rect.get("height", 0)
+        cv2.rectangle(viz_img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+    landmarks = face.get("landmark", {})
+    for point in landmarks.values():
+        cv2.circle(viz_img, (point.get("x", 0), point.get("y", 0)), 2, (0, 0, 255), -1)
 
     print("Reversing image search...")
-    web = reverse_image_search(image, required_env("GOOGLE_VISION_API_KEY"))
+    web = reverse_image_search(original_image, required_env("GOOGLE_VISION_API_KEY"))
     match = choose_social_match(web)
     print(f"Found this on social: {match['url']}")
 
     print("Building privacy-preserving evidence...")
-    evidence = build_evidence(image, face, match)
+    evidence = build_evidence(original_image, face, match)
     path, digest = write_artifact(evidence, artifacts)
+    
+    viz_path = artifacts / f"landmarks-{digest[:12]}.jpg"
+    cv2.imwrite(str(viz_path), viz_img)
     print(f"Evidence SHA-256: {digest}")
+    print(f"Landmark visualization saved to {viz_path}")
 
     if dry_run:
         print("DRY RUN: blockchain broadcast skipped.")
