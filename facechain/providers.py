@@ -28,7 +28,11 @@ def detect_face(image: bytes, api_key: str, api_secret: str) -> dict:
         files={"image_file": ("input.jpg", image)},
         timeout=45,
     )
-    payload = response.json()
+    try:
+        payload = response.json()
+    except ValueError:
+        raise ProviderError(f"Face++ failed (HTTP {response.status_code}): {response.text}")
+    
     if not response.ok or payload.get("error_message"):
         raise ProviderError(f"Face++ failed: {_error_message(payload, response.text)}")
     faces = payload.get("faces", [])
@@ -48,7 +52,11 @@ def reverse_image_search(image: bytes, api_key: str) -> dict:
         },
         timeout=60,
     )
-    payload = response.json()
+    try:
+        payload = response.json()
+    except ValueError:
+        raise ProviderError(f"Google Vision failed (HTTP {response.status_code}): {response.text}")
+        
     if not response.ok or payload.get("error"):
         message = _error_message(payload, response.text)
         if "requires billing to be enabled" in message:
