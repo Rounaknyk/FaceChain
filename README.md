@@ -85,16 +85,73 @@ URL. Open the Etherscan link during the demo and show the transaction input.
 ## Verified live proof
 
 The pipeline completed successfully against the real external services on
-September 2, 2026:
+September 5, 2026:
 
 - Face++ detected one face and returned 83 landmarks (166 encoded dimensions).
 - Google Vision Web Detection returned a matching public Instagram post.
-- Evidence SHA-256: `a766118b49eeab6419b9c6f5eb3181cdc8c8b143a9bfee9d14cf2b45096c08eb`.
-- The commitment was included in Sepolia block `11621173`.
-- Independent `verify` output returned `"valid": true`.
+- Evidence SHA-256: `78caf7a3d6bde2cdcc7c203e71ecd214643c3d738d0fbc91af150bba07c3db4d`.
+- Independent `verify` output returned `VERIFICATION SUCCESSFUL`.
 
-[View the Sepolia transaction](https://sepolia.etherscan.io/tx/c131873c3403d4c84b4c6ae158e0a1f429291b437f5bc6c8b13b6323d7b4a64c)
-or inspect the committed [`proof/evidence-a766118b49ee.json`](proof/evidence-a766118b49ee.json).
+[View the Sepolia transaction](https://sepolia.etherscan.io/tx/a1dd6c72eeea32ed8908fc5e1e69532fefab9791497e2dafc7c24641f1e21b48)
+or inspect the committed evidence [`artifacts/evidence-78caf7a3d6bd.json`](artifacts/evidence-78caf7a3d6bd.json)
+and the landmark visualization [`artifacts/landmarks-78caf7a3d6bd.jpg`](artifacts/landmarks-78caf7a3d6bd.jpg).
 The portrait itself is intentionally excluded from Git because it contains
 biometric data.
 
+
+## Tests
+
+```bash
+python -m unittest discover -v
+```
+
+Tests cover deterministic evidence hashing, privacy of the stored face token,
+social-domain selection, and honest failure when no social match exists. External
+providers are intentionally not mocked in the recorded demo.
+
+## Unedited demo recording checklist
+
+Record one continuous terminal capture:
+
+1. Briefly show the input image and its known public social post.
+2. Show `git status`, `.env.example` (not `.env`), and run the tests.
+3. Run `python -m facechain.cli run ...`; keep all four stages visible.
+4. Open the printed Etherscan URL and show status `Success`, Sepolia, and input data.
+5. Run `python -m facechain.cli verify artifacts/evidence-....json` and show
+   `"valid": true`.
+6. Change one character in a **copy** of the evidence file and verify the copy;
+   it must print `"valid": false`. Do not edit the original artifact.
+
+## Known limitations
+
+- Google can only find public pages it has indexed; private, new, deleted, or
+  robots-blocked posts will not match.
+- “Matching image” is Google's web-index assertion. FaceChain records that
+  provenance; it does not claim the social account owns or created the photo.
+- Face++ processes the image remotely. This prototype avoids storing raw images
+  or biometric tokens on-chain, but production use needs consent, retention,
+  regional privacy review, and liveness/anti-spoofing.
+- Social-domain filtering is explicit and conservative; add sites in
+  `facechain/core.py` when needed.
+- Sepolia is a test network. For production-grade permanence, switch the RPC and
+  chain guard to Ethereum mainnet or an appropriate L2.
+- The local evidence JSON must remain available: the chain stores its commitment,
+  not the complete document.
+
+## Repository layout
+
+```text
+facechain/core.py       deterministic evidence and social matching
+facechain/providers.py  real Face++ and Google Vision API calls
+facechain/chain.py      Sepolia write and independent verification
+facechain/cli.py        run/verify command-line interface
+tests/test_core.py      offline unit tests
+artifacts/              sanitized evidence and visualization from a verified live run
+demo/README.md          local demo-image instructions (image is not committed)
+```
+
+## Ethics
+
+Only process images with permission. A face match is probabilistic biometric
+evidence, not identity proof. Do not use this prototype for surveillance,
+employment, credit, policing, or other high-impact decisions.
