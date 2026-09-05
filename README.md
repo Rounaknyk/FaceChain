@@ -15,23 +15,26 @@ graph TD
     B -->|Interactive prompt| C[1: Capture from Webcam]
     B -->|Interactive prompt| D[2: Browse File via dialog]
     B -->|CLI Argument| E[Read file directly]
-    C --> F[Image Resizing & Compression]
+    C --> F[Raw High-Fidelity Image]
     D --> F
     E --> F
     F -->|max 1024px, 85% JPEG| G[Face++ Detection]
-    G --> H[Extract Face Landmarks & Token]
-    H --> I[Google Cloud Vision Web Search]
-    I --> J[Filter for recognized Social Media URL]
-    J --> K[Build Privacy-preserving Evidence JSON]
-    K --> L[Anchor to Ethereum Sepolia Blockchain]
+    G --> H[Extract 83 Face Landmarks]
+    H --> I[Generate Visual Artifact]
+    H --> J[Compute Independent Geometric Signature]
+    F -->|Original Bytes| K[Google Cloud Vision Web Search]
+    K --> L[Filter for recognized Social Media URL]
+    J --> M[Build Privacy-preserving Evidence JSON]
+    L --> M
+    M --> N[Anchor to Ethereum Sepolia Blockchain]
 ```
-1. **Face ID:** Face++ Detect uploads the input, requires exactly one detected
-   face, and returns a provider-issued face token plus facial landmarks. FaceChain
-   encodes the ordered landmarks into face-relative coordinates. Only hashes of
-   that vector and the provider token are kept; raw biometric data is discarded.
+1. **Face ID:** Face++ Detect uploads the compressed input, requires exactly one detected
+   face, and returns 83 facial landmarks. FaceChain computes an independent mathematical 
+   encoding of those ordered landmarks. Only hashes of that vector and the provider token 
+   are kept; raw biometric data is discarded. A visualization of the detected landmarks is also generated.
    *(Note: Images sent to Face++ are compressed to meet API size limits. This does not impact accuracy, as facial recognition relies on relative geometric proportions which remain invariant across compression levels.)*
 2. **Reverse-image search:** Google Cloud Vision Web Detection searches the
-   public web from the image bytes. FaceChain accepts only a URL from Google's
+   public web from the original, high-fidelity image bytes. FaceChain accepts only a URL from Google's
    `pagesWithMatchingImages` response whose domain is a recognized social site.
 3. **Evidence:** The input hash, hashed face token, face geometry, provider,
    result URL, and timestamp become canonical JSON.
